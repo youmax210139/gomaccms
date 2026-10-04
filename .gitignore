@@ -27,6 +27,9 @@ public/hot
 # SEO 发布中心生成的 sitemap
 storage/sitemap/
 storage/backup/
+# 安装向导生成: 连接配置 (含数据库密码) 与安装完成标记
+storage/config.env
+storage/install.lock
 
 # ---------- 编辑器 / AI 工具 / 系统文件 ----------
 .idea/
