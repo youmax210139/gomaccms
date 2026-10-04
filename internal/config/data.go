@@ -105,16 +105,17 @@ REDIS_PASSWORD redis访问密码
 REDIS_DB       redis使用第几号库
 STARTUP_DELAY  启动时连接数据库前的等待秒数
 MIGRATE_ON_START  启动时是否自动执行数据库迁移 (默认 true; false 时需先执行 go run ./cmd/migrate migrate)
+以上均可写在 storage/config.env (安装向导生成), 环境变量优先
 */
 var (
-	ListenerPort  = getEnv("LISTENER_PORT", "3601")
-	MysqlDsn      = getEnv("MYSQL_DSN", "root:123456@(127.0.0.1:3306)/FilmSite?charset=utf8mb4&parseTime=True&loc=Local")
-	RedisAddr     = getEnv("REDIS_ADDR", "127.0.0.1:6379")
-	RedisPassword = getEnv("REDIS_PASSWORD", "")
-	RedisDBNo     = getEnvInt("REDIS_DB", 0)
-	StartupDelay  = time.Duration(getEnvInt("STARTUP_DELAY", 20)) * time.Second
+	ListenerPort  string
+	MysqlDsn      string
+	RedisAddr     string
+	RedisPassword string
+	RedisDBNo     int
+	StartupDelay  time.Duration
 	// MigrateOnStart 启动时自动执行迁移; 设为 false 时只检查, 有未执行的迁移就拒绝启动
-	MigrateOnStart = getEnv("MIGRATE_ON_START", "true") != "false"
+	MigrateOnStart bool
 )
 
 /*
@@ -132,19 +133,43 @@ INDEXNOW_BATCH_SIZE     每次推送的 URL 数 (IndexNow 上限 10000)
 INDEXNOW_FLUSH_INTERVAL 待推送 URL 的提交间隔 (秒)
 */
 var (
-	SitemapChunkSize      = getEnvInt("SITEMAP_CHUNK_SIZE", 50000)
-	SitemapAutoInterval   = time.Duration(getEnvInt("SITEMAP_AUTO_INTERVAL", 60)) * time.Minute
-	SitemapDir            = getEnv("SITEMAP_DIR", "./storage/sitemap")
-	RSSLimit              = getEnvInt("RSS_LIMIT", 50)
-	RSSCacheTTL           = time.Duration(getEnvInt("RSS_CACHE_TTL", 300)) * time.Second
-	IndexNowEnabled       = getEnv("INDEXNOW_ENABLED", "false") == "true"
-	IndexNowKey           = getEnv("INDEXNOW_KEY", "")
-	IndexNowHost          = getEnv("INDEXNOW_HOST", "")
-	IndexNowScheme        = getEnv("INDEXNOW_SCHEME", "https")
-	IndexNowEndpoint      = getEnv("INDEXNOW_ENDPOINT", "https://api.indexnow.org/indexnow")
-	IndexNowBatchSize     = getEnvInt("INDEXNOW_BATCH_SIZE", 10000)
-	IndexNowFlushInterval = time.Duration(getEnvInt("INDEXNOW_FLUSH_INTERVAL", 60)) * time.Second
+	SitemapChunkSize      int
+	SitemapAutoInterval   time.Duration
+	SitemapDir            string
+	RSSLimit              int
+	RSSCacheTTL           time.Duration
+	IndexNowEnabled       bool
+	IndexNowKey           string
+	IndexNowHost          string
+	IndexNowScheme        string
+	IndexNowEndpoint      string
+	IndexNowBatchSize     int
+	IndexNowFlushInterval time.Duration
 )
+
+// loadVars 从环境变量读出全部配置 (由 Load 调用)
+func loadVars() {
+	ListenerPort = getEnv("LISTENER_PORT", "3601")
+	MysqlDsn = getEnv("MYSQL_DSN", "root:123456@(127.0.0.1:3306)/FilmSite?charset=utf8mb4&parseTime=True&loc=Local")
+	RedisAddr = getEnv("REDIS_ADDR", "127.0.0.1:6379")
+	RedisPassword = getEnv("REDIS_PASSWORD", "")
+	RedisDBNo = getEnvInt("REDIS_DB", 0)
+	StartupDelay = time.Duration(getEnvInt("STARTUP_DELAY", 20)) * time.Second
+	MigrateOnStart = getEnv("MIGRATE_ON_START", "true") != "false"
+
+	SitemapChunkSize = getEnvInt("SITEMAP_CHUNK_SIZE", 50000)
+	SitemapAutoInterval = time.Duration(getEnvInt("SITEMAP_AUTO_INTERVAL", 60)) * time.Minute
+	SitemapDir = getEnv("SITEMAP_DIR", "./storage/sitemap")
+	RSSLimit = getEnvInt("RSS_LIMIT", 50)
+	RSSCacheTTL = time.Duration(getEnvInt("RSS_CACHE_TTL", 300)) * time.Second
+	IndexNowEnabled = getEnv("INDEXNOW_ENABLED", "false") == "true"
+	IndexNowKey = getEnv("INDEXNOW_KEY", "")
+	IndexNowHost = getEnv("INDEXNOW_HOST", "")
+	IndexNowScheme = getEnv("INDEXNOW_SCHEME", "https")
+	IndexNowEndpoint = getEnv("INDEXNOW_ENDPOINT", "https://api.indexnow.org/indexnow")
+	IndexNowBatchSize = getEnvInt("INDEXNOW_BATCH_SIZE", 10000)
+	IndexNowFlushInterval = time.Duration(getEnvInt("INDEXNOW_FLUSH_INTERVAL", 60)) * time.Second
+}
 
 // 缓存 key 统一在此生成, 各处不要自行拼接
 const (

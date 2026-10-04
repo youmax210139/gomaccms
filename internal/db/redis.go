@@ -24,10 +24,6 @@ func InitRedisConn() error {
 		PoolSize:    10,               // 最大连接数
 		DialTimeout: time.Second * 10, // 超时时间
 	})
-	// 测试连接是否正常
-	_, err := Rdb.Ping(Cxt).Result()
-	if err != nil {
-		panic(err)
-	}
-	return nil
+	// 测试连接是否正常 (失败时返回错误: 启动时由 main panic, 安装向导则显示给用户)
+	return Rdb.Ping(Cxt).Err()
 }
