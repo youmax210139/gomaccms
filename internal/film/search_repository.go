@@ -300,13 +300,12 @@ func vodSearchFieldOf(lang string) string {
 
 // keywordQuery 关键字匹配的前台可见影片ID: 原文片名/别名; 非原文语言再比对该语言的译名
 func keywordQuery(tx *gorm.DB, word, lang string) *gorm.DB {
-	match := fmt.Sprintf(`"%s"`, word)
 	q := tx.Model(&Vod{}).Select("vod_id").Where("vod_status = ?", vodStatusOn)
 	if !translated(lang) {
-		return q.Where("MATCH(vod_name, vod_sub) AGAINST(? IN BOOLEAN MODE)", match)
+		return q.Where(textMatch(word, true, "vod_name", "vod_sub"))
 	}
-	return q.Where("(MATCH(vod_name, vod_sub) AGAINST(? IN BOOLEAN MODE) OR vod_id IN (?))", match,
-		tx.Model(&VodI18n{}).Select("vod_id").Where("lang = ? AND MATCH(name, sub) AGAINST(? IN BOOLEAN MODE)", lang, match))
+	return q.Where("(? OR vod_id IN (?))", textMatch(word, true, "vod_name", "vod_sub"),
+		tx.Model(&VodI18n{}).Select("vod_id").Where("lang = ?", lang).Where(textMatch(word, true, "name", "sub")))
 }
 
 // keywordResultIds 关键字的全部结果ID: 优先读取 vod_search 缓存, 并累计命中次数
@@ -484,7 +483,7 @@ func (r *SearchRepository) GetSearchInfosByTags(st SearchTagsVO, page *paging.Pa
 				}
 				break
 			}
-			qw = qw.Where("MATCH(vod_class) AGAINST(? IN BOOLEAN MODE)", fmt.Sprintf(`"%v"`, value))
+			qw = qw.Where(textMatch(fmt.Sprint(value), true, "vod_class"))
 		case "sort":
 			// 排序值来自请求参数, 只接受白名单内的栏位
 			column, ok := vodSortColumns[fmt.Sprint(value)]
@@ -587,7 +586,7 @@ func (r *SearchRepository) GetSearchPage(s SearchVo) []SearchInfo {
 		}
 	}
 	if s.Name != "" {
-		query = query.Where("MATCH(vod_name, vod_sub) AGAINST(? IN BOOLEAN MODE)", fmt.Sprintf(`"%s"`, s.Name))
+		query = query.Where(textMatch(s.Name, true, "vod_name", "vod_sub"))
 	}
 	switch {
 	case s.Cid > 0:
@@ -598,7 +597,7 @@ func (r *SearchRepository) GetSearchPage(s SearchVo) []SearchInfo {
 		query = query.Where("vod_id IN (?)", db.Mdb.Model(&VodType{}).Select("vod_id").Where("scheme_id = ?", s.SchemeId))
 	}
 	if s.Plot != "" {
-		query = query.Where("MATCH(vod_class) AGAINST(?)", s.Plot)
+		query = query.Where(textMatch(s.Plot, false, "vod_class"))
 	}
 	if s.Area != "" {
 		query = query.Where("vod_area = ?", s.Area)

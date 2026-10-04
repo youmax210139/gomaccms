@@ -41,8 +41,9 @@ func TestMysqlVersionCheck(t *testing.T) {
 		{"8.4.2", true, "8.4.2"},
 		{"5.7.44-log", true, "建议升级到 8.0"},
 		{"5.7.7", false, "需要 5.7.8 以上"},
-		{"10.11.6-MariaDB", false, "不支持 MariaDB"},
-		{"11.3.2-MariaDB-log", false, "不支持 MariaDB"},
+		{"10.11.6-MariaDB", true, "LIKE"},
+		{"11.3.2-MariaDB-log", true, "LIKE"},
+		{"10.4.30-MariaDB", false, "需要 MariaDB 10.5"},
 	}
 	for _, c := range cases {
 		got := mysqlVersionCheck(c.version)

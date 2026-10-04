@@ -1,6 +1,8 @@
 package db
 
 import (
+	"strings"
+
 	"gomaccms/internal/config"
 
 	"gorm.io/driver/mysql"
@@ -10,6 +12,14 @@ import (
 )
 
 var Mdb *gorm.DB
+
+// IsMariaDB 当前连接的是 MariaDB: 它没有 ngram 全文解析器, 迁移去掉 parser 子句, 文字搜索改用 LIKE
+var IsMariaDB bool
+
+// IsMariaDBVersion SELECT VERSION() 的结果是否为 MariaDB
+func IsMariaDBVersion(version string) bool {
+	return strings.Contains(strings.ToLower(version), "mariadb")
+}
 
 func InitMysql() (err error) {
 	// client 相关属性设置
@@ -30,5 +40,13 @@ func InitMysql() (err error) {
 		Logger: logger.Default.LogMode(logger.Info), //设置日志级别为Info
 		//Logger: logger.Default.LogMode(logger.Error), //设置日志级别为 Error
 	})
+	if err != nil {
+		return
+	}
+	var version string
+	if err = Mdb.Raw("SELECT VERSION()").Scan(&version).Error; err != nil {
+		return
+	}
+	IsMariaDB = IsMariaDBVersion(version)
 	return
 }

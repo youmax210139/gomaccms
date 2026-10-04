@@ -8,6 +8,7 @@ import (
 	"log"
 	"strings"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -82,26 +83,35 @@ func (r *MovieRepository) getMovieList(column string, id int64, page *paging.Pag
 
 // GetRelateMovieBasicInfo 相关影片: 同分类下片名相近或剧情标签相同的影片, 片名相近的优先
 func (r *MovieRepository) GetRelateMovieBasicInfo(search SearchInfo, page *paging.Page) []MovieBasicInfo {
-	name := util.CleanFilmName(search.Name)
-	tags := strings.ReplaceAll(util.FormatSpecialChar(strings.ReplaceAll(search.ClassTag, " ", "")), ",", " ")
-	query := vodInCategory("type_id", search.Cid)
-	switch {
-	case name != "" && tags != "":
-		query = query.Where("(MATCH(vod_name, vod_sub) AGAINST(?) OR MATCH(vod_class) AGAINST(?))", name, tags)
-	case name != "":
-		query = query.Where("MATCH(vod_name, vod_sub) AGAINST(?)", name)
-	case tags != "":
-		query = query.Where("MATCH(vod_class) AGAINST(?)", tags)
-	}
-	if name != "" {
-		query = query.Order(clause.Expr{SQL: "MATCH(vod_name, vod_sub) AGAINST(?) DESC", Vars: []any{name}})
-	}
 	var ids []int64
-	if err := paging.Limit(query.Order("vod_time DESC"), page).Pluck("vod_id", &ids).Error; err != nil {
+	if err := paging.Limit(relateQuery(search), page).Pluck("vod_id", &ids).Error; err != nil {
 		log.Println("GetRelateMovie Error:", err)
 		return nil
 	}
 	return r.GetBasicInfoByIds(ids)
+}
+
+// relateQuery 相关影片的查询 (不含分页)
+func relateQuery(search SearchInfo) *gorm.DB {
+	name := util.CleanFilmName(search.Name)
+	tags := strings.ReplaceAll(util.FormatSpecialChar(strings.ReplaceAll(search.ClassTag, " ", "")), ",", " ")
+	query := vodInCategory("type_id", search.Cid)
+	// MariaDB 的 LIKE 以整个片名匹配, 避免片名中的 "2" 之类短词匹配到大量影片; MySQL 仍是全文自然语言模式
+	nameMatch := textMatch(name, db.IsMariaDB, "vod_name", "vod_sub")
+	switch {
+	case name != "" && tags != "":
+		query = query.Where("(? OR ?)", nameMatch, textMatch(tags, false, "vod_class"))
+	case name != "":
+		query = query.Where(nameMatch)
+	case tags != "":
+		query = query.Where(textMatch(tags, false, "vod_class"))
+	}
+	// 片名相近的优先 (MariaDB 没有全文相关度, 只按更新时间)。
+	// 带参数的排序须包在 clause.OrderBy 中 (Order 会忽略 clause.Expr), 且与 vod_time 写在同一个表达式里, 否则后续 Order 合并时会被覆盖
+	if name != "" && !db.IsMariaDB {
+		return query.Order(clause.OrderBy{Expression: clause.Expr{SQL: "MATCH(vod_name, vod_sub) AGAINST(?) DESC, vod_time DESC", Vars: []any{name}}})
+	}
+	return query.Order("vod_time DESC")
 }
 
 // replaceDetailPic 将影片详情中的图片地址替换为本地图片(如果已同步)

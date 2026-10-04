@@ -14,8 +14,10 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"regexp"
 	"sort"
 	"strings"
+	"testing/fstest"
 
 	"gomaccms/internal/db"
 
@@ -28,13 +30,41 @@ var files embed.FS
 // baseline 第一个迁移 (00001_schema.sql, 建立全部表) 的版本; 退回它等于删除全部表, rollback 不做 (请用 fresh)
 const baseline = 1
 
+// ngramParser 全文索引的 ngram 分词器子句; MariaDB 没有 ngram (也会执行 /*!50100 */ 注释), 迁移时去掉
+var ngramParser = regexp.MustCompile("\\s*/\\*!50100 WITH PARSER `ngram` \\*/")
+
+// sourceFS 迁移文件: MySQL 原样; MariaDB 去掉 ngram parser, 建普通全文索引 (搜索改用 LIKE, 见 film.textMatch)。
+// 迁移文件本身不改, 已安装的数据库不受影响。
+func sourceFS(mariaDB bool) (fs.FS, error) {
+	if !mariaDB {
+		return files, nil
+	}
+	names, err := fs.Glob(files, "*.sql")
+	if err != nil {
+		return nil, err
+	}
+	out := fstest.MapFS{}
+	for _, n := range names {
+		b, err := fs.ReadFile(files, n)
+		if err != nil {
+			return nil, err
+		}
+		out[n] = &fstest.MapFile{Data: ngramParser.ReplaceAll(b, nil)}
+	}
+	return out, nil
+}
+
 // newProvider 以 db.Mdb 的连线建立 goose provider
 func newProvider() (*goose.Provider, *sql.DB, error) {
 	sqlDB, err := db.Mdb.DB()
 	if err != nil {
 		return nil, nil, fmt.Errorf("migrations: get sql.DB: %w", err)
 	}
-	p, err := goose.NewProvider(goose.DialectMySQL, sqlDB, files)
+	fsys, err := sourceFS(db.IsMariaDB)
+	if err != nil {
+		return nil, nil, err
+	}
+	p, err := goose.NewProvider(goose.DialectMySQL, sqlDB, fsys)
 	if err != nil {
 		return nil, nil, fmt.Errorf("migrations: init goose: %w", err)
 	}

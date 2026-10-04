@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"gomaccms/internal/config"
+	"gomaccms/internal/db"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
@@ -26,8 +27,9 @@ type Check struct {
 }
 
 const (
-	minMysql = "5.7.8" // schema 使用 JSON 列与 ngram 全文索引 (MariaDB 没有 ngram, 不支持)
-	minRedis = "5.0.0"
+	minMysql   = "5.7.8"  // schema 使用 JSON 列与 ngram 全文索引
+	minMariaDB = "10.5.0" // MariaDB 没有 ngram: 迁移去掉 parser, 搜索改用 LIKE (database/migrations.sourceFS, film.textMatch)
+	minRedis   = "5.0.0"
 )
 
 // Blocked 第一个未通过的阻挡项 ("名称: 说明"), 全部通过时返回 ""
@@ -106,8 +108,12 @@ func CheckMysql(dsn string) Check {
 // mysqlVersionCheck 按 SELECT VERSION() 的结果判断服务器是否可用
 func mysqlVersionCheck(version string) Check {
 	c := Check{Name: "MySQL", Blocking: true}
-	if strings.Contains(strings.ToLower(version), "mariadb") {
-		c.Detail = version + " (不支持 MariaDB: 缺少影片搜索所需的 ngram 全文解析器, 请改用 MySQL " + minMysql + " 以上, 建议 8.0)"
+	if db.IsMariaDBVersion(version) {
+		if !versionAtLeast(version, minMariaDB) {
+			c.Detail = version + " (需要 MariaDB " + minMariaDB + " 以上)"
+			return c
+		}
+		c.OK, c.Detail = true, version+" (MariaDB 没有 ngram 中文分词, 影片搜索使用 LIKE, 影片很多时较慢; 建议 MySQL 8.0)"
 		return c
 	}
 	if !versionAtLeast(version, minMysql) {
