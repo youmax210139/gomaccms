@@ -26,7 +26,7 @@ type Check struct {
 }
 
 const (
-	minMysql = "5.7.8" // schema 使用 JSON 列与 ngram 全文索引
+	minMysql = "5.7.8" // schema 使用 JSON 列与 ngram 全文索引 (MariaDB 没有 ngram, 不支持)
 	minRedis = "5.0.0"
 )
 
@@ -100,12 +100,22 @@ func CheckMysql(dsn string) Check {
 		c.Detail = "连接失败: " + err.Error()
 		return c
 	}
+	return mysqlVersionCheck(version)
+}
+
+// mysqlVersionCheck 按 SELECT VERSION() 的结果判断服务器是否可用
+func mysqlVersionCheck(version string) Check {
+	c := Check{Name: "MySQL", Blocking: true}
+	if strings.Contains(strings.ToLower(version), "mariadb") {
+		c.Detail = version + " (不支持 MariaDB: 缺少影片搜索所需的 ngram 全文解析器, 请改用 MySQL " + minMysql + " 以上, 建议 8.0)"
+		return c
+	}
 	if !versionAtLeast(version, minMysql) {
 		c.Detail = version + " (需要 " + minMysql + " 以上)"
 		return c
 	}
 	c.OK, c.Detail = true, version
-	if !versionAtLeast(version, "8.0.0") && !strings.Contains(version, "MariaDB") {
+	if !versionAtLeast(version, "8.0.0") {
 		c.Detail += " (建议升级到 8.0 以上)"
 	}
 	return c

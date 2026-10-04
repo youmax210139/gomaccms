@@ -32,6 +32,26 @@ func TestVersionAtLeast(t *testing.T) {
 	}
 }
 
+func TestMysqlVersionCheck(t *testing.T) {
+	cases := []struct {
+		version string
+		ok      bool
+		detail  string
+	}{
+		{"8.4.2", true, "8.4.2"},
+		{"5.7.44-log", true, "建议升级到 8.0"},
+		{"5.7.7", false, "需要 5.7.8 以上"},
+		{"10.11.6-MariaDB", false, "不支持 MariaDB"},
+		{"11.3.2-MariaDB-log", false, "不支持 MariaDB"},
+	}
+	for _, c := range cases {
+		got := mysqlVersionCheck(c.version)
+		if got.OK != c.ok || !got.Blocking || !strings.Contains(got.Detail, c.detail) {
+			t.Errorf("mysqlVersionCheck(%q) = %+v, want ok=%v detail containing %q", c.version, got, c.ok, c.detail)
+		}
+	}
+}
+
 func TestInfoField(t *testing.T) {
 	info := "# Server\r\nredis_version:7.2.5\r\nredis_mode:standalone\r\n"
 	if got := infoField(info, "redis_version"); got != "7.2.5" {
