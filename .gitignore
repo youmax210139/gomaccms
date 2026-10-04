@@ -36,7 +36,6 @@ storage/backup/
 .DS_Store
 Thumbs.db
 *.swp
-.air.toml
 CLAUDE.md
 docs/superpowers
 
