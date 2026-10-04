@@ -21,7 +21,16 @@ func main() {
 	time.Sleep(config.StartupDelay)
 
 	sw := &install.Switch{}
-	if install.Locked() || install.Detect() {
+	installed := install.Locked()
+	if !installed {
+		ok, err := install.Detect()
+		if err != nil && install.Configured() {
+			// 已有数据库配置却连不上: 照旧报错退出 (由进程管理器重启), 不让已上线的网站进入安装模式
+			panic(fmt.Errorf("连接 MySQL 失败: %w", err))
+		}
+		installed = ok
+	}
+	if installed {
 		if err := db.InitRedisConn(); err != nil {
 			panic(err)
 		}

@@ -4,6 +4,7 @@ package install
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -34,31 +35,45 @@ func WriteLock() error {
 }
 
 // Detect 没有 lock 时判断是否为已在运行的旧部署: 数据库能连上、goose 有迁移记录且已有管理员。
-// 为真时补写 lock。连接或查询失败一律视为未安装, 不 panic。
-func Detect() bool {
+// 为真时补写 lock。服务器有回应但库 / 表不存在时视为未安装 (nil error);
+// 连不上服务器时返回 error, 由调用方结合 Configured 决定报错还是进入安装模式。
+func Detect() (bool, error) {
 	cfg, err := mysql.ParseDSN(config.MysqlDsn)
 	if err != nil {
-		return false
+		return false, nil
 	}
 	cfg.Timeout = 5 * time.Second
 	conn, err := sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
-		return false
+		return false, nil
 	}
 	defer conn.Close()
+	if err := conn.Ping(); err != nil {
+		var me *mysql.MySQLError
+		if errors.As(err, &me) { // 服务器有回应 (如库不存在、无权限): 尚未安装
+			return false, nil
+		}
+		return false, err
+	}
 	var migrated, users int
 	if conn.QueryRow("SELECT COUNT(*) FROM goose_db_version WHERE version_id > 0").Scan(&migrated) != nil || migrated == 0 {
-		return false
+		return false, nil
 	}
 	if conn.QueryRow("SELECT COUNT(*) FROM users").Scan(&users) != nil || users == 0 {
-		return false
+		return false, nil
 	}
 	if err := WriteLock(); err != nil {
 		log.Printf("install: 补写 %s 失败: %v", LockPath, err)
 	} else {
 		log.Printf("install: 数据库已安装, 已补写 %s", LockPath)
 	}
-	return true
+	return true, nil
+}
+
+// Configured 是否已有数据库配置 (环境变量 MYSQL_DSN 或之前写入的 config.env):
+// 此时连不上数据库应当报错重启, 而不是让已上线的网站进入安装模式
+func Configured() bool {
+	return config.EnvProvided("MYSQL_DSN") || exists(config.EnvFilePath)
 }
 
 // Switch 可原子替换的 http.Handler: 未安装时是安装页, 安装完成后换成完整路由

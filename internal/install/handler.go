@@ -3,6 +3,7 @@ package install
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"database/sql"
 	"embed"
 	"errors"
@@ -31,13 +32,19 @@ var templateFS embed.FS
 
 var pageTmpl = template.Must(template.ParseFS(templateFS, "templates/install.html"))
 
+// maxCodeFailures 安装码连续输错这么多次后换一个新码 (打印到日志), 防止暴力尝试
+const maxCodeFailures = 10
+
 // Handler 安装模式下的全部路由
 type Handler struct {
-	sw     *Switch
-	boot   func() (http.Handler, error)
-	code   string
-	mu     sync.Mutex // 同时只能有一个安装在执行
-	engine *gin.Engine
+	sw   *Switch
+	boot func() (http.Handler, error)
+	// mu 同时只能有一个请求读写安装状态 (安装中会 config.Load, 与页面渲染互斥)
+	mu       sync.Mutex
+	codeMu   sync.Mutex
+	code     string
+	failures int
+	engine   *gin.Engine
 }
 
 // NewHandler 建立安装路由并在日志打印安装码; 安装成功后用 boot 的结果替换 sw 中的 handler
@@ -46,7 +53,7 @@ func NewHandler(sw *Switch, boot func() (http.Handler, error)) *Handler {
 	log.Printf("install: 尚未安装, 请打开网站 /install 完成安装, 安装码: %s", h.code)
 	e := gin.New()
 	e.Use(gin.Logger(), gin.Recovery())
-	e.GET("/install", func(c *gin.Context) { h.render(c, http.StatusOK, defaultForm(), "") })
+	e.GET("/install", h.page)
 	e.POST("/install", h.submit)
 	e.POST("/install/test", h.test)
 	e.NoRoute(func(c *gin.Context) { c.Redirect(http.StatusFound, "/install") })
@@ -55,6 +62,27 @@ func NewHandler(sw *Switch, boot func() (http.Handler, error)) *Handler {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) { h.engine.ServeHTTP(w, r) }
+
+// checkCode 校验安装码 (常量时间比较); 连续输错 maxCodeFailures 次后换新码
+func (h *Handler) checkCode(input string) bool {
+	h.codeMu.Lock()
+	defer h.codeMu.Unlock()
+	if subtle.ConstantTimeCompare([]byte(input), []byte(h.code)) == 1 {
+		h.failures = 0
+		return true
+	}
+	h.failures++
+	if h.failures >= maxCodeFailures {
+		h.code, h.failures = newCode(), 0
+		log.Printf("install: 安装码连续输错 %d 次, 已更换, 新安装码: %s", maxCodeFailures, h.code)
+	}
+	return false
+}
+
+// redisFromEnv REDIS_ADDR / REDIS_PASSWORD / REDIS_DB 任一由环境变量提供时, 整组 Redis 设置都以环境变量为准
+func redisFromEnv() bool {
+	return config.EnvProvided("REDIS_ADDR") || config.EnvProvided("REDIS_PASSWORD") || config.EnvProvided("REDIS_DB")
+}
 
 // newCode 6 位随机数字
 func newCode() string {
@@ -79,7 +107,7 @@ func (h *Handler) render(c *gin.Context, status int, f Form, errMsg string) {
 	d := pageData{
 		Checks:       CheckEnvironment(),
 		MysqlFromEnv: config.EnvProvided("MYSQL_DSN"),
-		RedisFromEnv: config.EnvProvided("REDIS_ADDR"),
+		RedisFromEnv: redisFromEnv(),
 		Form:         f.withoutPasswords(),
 		Error:        errMsg,
 	}
@@ -104,6 +132,15 @@ func (h *Handler) bindForm(c *gin.Context) Form {
 	return f
 }
 
+func (h *Handler) page(c *gin.Context) {
+	if !h.mu.TryLock() {
+		c.String(http.StatusConflict, "安装正在进行中, 请稍候刷新")
+		return
+	}
+	defer h.mu.Unlock()
+	h.render(c, http.StatusOK, defaultForm(), "")
+}
+
 func (h *Handler) submit(c *gin.Context) {
 	f := h.bindForm(c)
 	if !h.mu.TryLock() {
@@ -123,7 +160,12 @@ func (h *Handler) submit(c *gin.Context) {
 // test 「测试连接」: 检查表单里的 MySQL / Redis (环境变量提供的组不在此检查)
 func (h *Handler) test(c *gin.Context) {
 	f := h.bindForm(c)
-	if f.Code != h.code {
+	if !h.mu.TryLock() {
+		response.Failed("安装正在进行中, 请稍候", c)
+		return
+	}
+	defer h.mu.Unlock()
+	if !h.checkCode(f.Code) {
 		response.Failed("安装码错误 (见服务启动日志)", c)
 		return
 	}
@@ -131,7 +173,7 @@ func (h *Handler) test(c *gin.Context) {
 	if !config.EnvProvided("MYSQL_DSN") {
 		data["mysql"] = CheckMysql(f.DSN())
 	}
-	if !config.EnvProvided("REDIS_ADDR") {
+	if !redisFromEnv() {
 		data["redis"] = CheckRedis(f.RedisAddr, f.RedisPassword, f.RedisDB)
 	}
 	response.Success(data, "", c)
@@ -139,10 +181,10 @@ func (h *Handler) test(c *gin.Context) {
 
 // install 执行安装; 任一步失败返回错误, 不写 lock, 可直接重试
 func (h *Handler) install(f Form) error {
-	if f.Code != h.code {
+	if !h.checkCode(f.Code) {
 		return errors.New("安装码错误 (见服务启动日志)")
 	}
-	mysqlFromForm, redisFromForm := !config.EnvProvided("MYSQL_DSN"), !config.EnvProvided("REDIS_ADDR")
+	mysqlFromForm, redisFromForm := !config.EnvProvided("MYSQL_DSN"), !redisFromEnv()
 	if msg := f.validate(mysqlFromForm, redisFromForm); msg != "" {
 		return errors.New(msg)
 	}

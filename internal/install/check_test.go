@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"gomaccms/internal/config"
 )
 
 func TestVersionAtLeast(t *testing.T) {
@@ -119,6 +121,37 @@ func TestCheckRedisUnreachable(t *testing.T) {
 	c := CheckRedis("127.0.0.1:1", "", 0)
 	if c.OK || !c.Blocking || !strings.Contains(c.Detail, "连接失败") {
 		t.Errorf("CheckRedis = %+v", c)
+	}
+}
+
+func TestDetectReportsUnreachableDatabase(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("MYSQL_DSN", "root:x@tcp(127.0.0.1:1)/FilmSite")
+	config.Load()
+	t.Cleanup(config.Load)
+	installed, err := Detect()
+	if installed || err == nil {
+		t.Fatalf("Detect = %v, %v; want false with a connection error", installed, err)
+	}
+	if !Configured() {
+		t.Error("MYSQL_DSN from env means the database is configured")
+	}
+	if Locked() {
+		t.Error("no lock on connection failure")
+	}
+}
+
+func TestConfiguredFalseOnFreshMachine(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("MYSQL_DSN", "")
+	os.Unsetenv("MYSQL_DSN")
+	if Configured() {
+		t.Error("no env and no config.env: not configured")
+	}
+	os.MkdirAll("storage", 0o755)
+	os.WriteFile(config.EnvFilePath, []byte("REDIS_DB=1\n"), 0o600)
+	if !Configured() {
+		t.Error("an existing config.env means a previous install attempt configured the database")
 	}
 }
 

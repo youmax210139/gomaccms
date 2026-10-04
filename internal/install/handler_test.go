@@ -6,7 +6,10 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"testing"
+
+	"gomaccms/internal/config"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
@@ -18,7 +21,7 @@ func init() { gin.SetMode(gin.TestMode) }
 func newTestHandler(t *testing.T) *Handler {
 	t.Helper()
 	t.Chdir(t.TempDir())
-	for _, k := range []string{"MYSQL_DSN", "REDIS_ADDR"} {
+	for _, k := range []string{"MYSQL_DSN", "REDIS_ADDR", "REDIS_PASSWORD", "REDIS_DB"} {
 		t.Setenv(k, "")
 		os.Unsetenv(k)
 	}
@@ -144,4 +147,50 @@ func TestSubmitWhileInstalling(t *testing.T) {
 	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "安装正在进行中") {
 		t.Errorf("got %d\n%s", rec.Code, rec.Body.String())
 	}
+}
+
+func TestCodeRotatesAfterTooManyFailures(t *testing.T) {
+	h := newTestHandler(t)
+	first := h.code
+	for i := 0; i < maxCodeFailures; i++ {
+		post(h, "/install/test", validForm("bad"))
+	}
+	if h.code == first {
+		t.Fatalf("code should be regenerated after %d wrong attempts", maxCodeFailures)
+	}
+	if rec := post(h, "/install/test", validForm(first)); !strings.Contains(rec.Body.String(), `"code":-1`) {
+		t.Error("the old code must no longer be accepted")
+	}
+}
+
+func TestRedisGroupFromEnvWhenAnyRedisVarSet(t *testing.T) {
+	h := newTestHandler(t)
+	t.Setenv("REDIS_DB", "3") // REDIS_ADDR 未设置, 但库号由环境变量决定
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/install", nil))
+	body := rec.Body.String()
+	if strings.Contains(body, `name="redis_addr"`) || !strings.Contains(body, "由环境变量提供 (REDIS_") {
+		t.Errorf("Redis group should be read-only when any REDIS_* env var is set:\n%s", body)
+	}
+}
+
+// 安装中 (持有 h.mu) 调用 config.Load 时, 同时打开安装页不能产生数据竞争 (go test -race)
+func TestRenderDuringInstallNoRace(t *testing.T) {
+	h := newTestHandler(t)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 50; i++ {
+			h.mu.Lock()
+			config.Load()
+			h.mu.Unlock()
+		}
+	}()
+	for i := 0; i < 20; i++ {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("GET", "/install", nil))
+		post(h, "/install/test", validForm(h.code))
+	}
+	wg.Wait()
 }

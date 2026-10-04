@@ -57,7 +57,7 @@ a{color:var(--primary)}
 
 <section>
 <h2>3. Redis</h2>
-{{if .RedisFromEnv}}<p class="muted">由环境变量提供 (REDIS_ADDR)</p>{{else}}
+{{if .RedisFromEnv}}<p class="muted">由环境变量提供 (REDIS_ADDR / REDIS_PASSWORD / REDIS_DB)</p>{{else}}
 <div class="row">
 <div><label>地址</label><input name="redis_addr" value="{{.Form.RedisAddr}}" required></div>
 <div><label>库编号</label><input name="redis_db" value="{{.Form.RedisDB}}" inputmode="numeric"></div>
