@@ -1,0 +1,53 @@
+{{define "pageClass"}}homepage{{end}}
+{{define "content"}}
+{{/* 后台提供该分类方案全部启用的海报, 本主题最多显示 6 个; 文字按访客语言 ($b.Text $.lang) */}}
+{{$banners := limit 6 .banners}}
+{{if $banners}}
+<div class="container-slide" id="banner">
+    <div class="swiper-big">
+        {{range $i, $b := $banners}}{{$t := $b.Text $.lang}}
+        <div class="swiper-slide banner-slide{{if eq $i 0}} active{{end}}">
+            <a {{if $b.Mid}}href="/filmDetail?link={{$b.Mid}}"{{else}}href="javascript:;"{{end}} class="banner"><img src="{{or $b.Poster $b.Picture}}" alt="{{$t.Name}}" referrerpolicy="no-referrer"></a>
+            <div class="mobile-v-info">
+                <div class="v-title"><span>{{$t.Name}}</span></div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+    <div class="sm-swiper">
+        <div class="swiper-small banner-thumbs">
+            {{range $i, $b := $banners}}{{$t := $b.Text $.lang}}
+            <div class="swiper-slide banner-thumb{{if eq $i 0}} active{{end}}" data-index="{{$i}}">
+                <div class="title"><a {{if $b.Mid}}href="/filmDetail?link={{$b.Mid}}"{{end}}>{{$t.Name}}</a></div>
+            </div>
+            {{end}}
+        </div>
+        <div class="banner-dots">
+            {{range $i, $b := $banners}}<span class="banner-dot{{if eq $i 0}} active{{end}}" data-index="{{$i}}"></span>{{end}}
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{range .content}}
+{{if .nav.Show}}
+<div class="module">
+    <div class="module-heading">
+        <h2 class="module-title"><a href="/filmClassify?Pid={{.nav.Id}}">{{.nav.Name}}</a></h2>
+        <div class="module-heading-links">
+            {{range $i, $c := .nav.Children}}{{if and $c.Show (lt $i 6)}}
+            <a href="/filmClassifySearch?Pid={{$c.Pid}}&Category={{$c.Id}}">{{$c.Name}}</a>
+            {{end}}{{end}}
+            <a class="module-heading-more" href="/filmClassify?Pid={{.nav.Id}}">{{t $ "common.more"}}<i class="icon-arrow-right"></i></a>
+        </div>
+    </div>
+    <div class="module-main">
+        <div class="module-items module-poster-items-base">
+            {{range limit 12 .movies}}{{template "components/vodbox" .}}{{end}}
+        </div>
+    </div>
+</div>
+{{end}}
+{{end}}
+{{end}}
+{{define "scripts"}}<script src="{{asset .ThemeName "js/index.js"}}"></script>{{end}}

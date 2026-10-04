@@ -1,0 +1,6 @@
+{{define "pageClass"}}page list{{end}}
+{{define "content"}}
+<div class="module-prompt site-closed">
+    <div class="nofound">{{if .site.Hint}}{{.site.Hint}}{{else}}{{t $ "closed.default"}}{{end}}</div>
+</div>
+{{end}}

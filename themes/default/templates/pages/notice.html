@@ -1,0 +1,7 @@
+{{define "pageClass"}}page list{{end}}
+{{define "content"}}
+<div class="module-prompt site-closed">
+    <div class="nofound">{{t $ "notice.denied" (t $ (printf "perm.%s" .perm))}}</div>
+    <div class="module-prompt-info"><a href="/" class="main-btn">{{t $ "common.backHome"}}</a></div>
+</div>
+{{end}}

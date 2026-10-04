@@ -1,0 +1,60 @@
+{{define "pageClass"}}page list{{end}}
+{{define "content"}}
+<div class="module">
+    <form class="page-search" method="get" action="/search">
+        <input class="page-search-input" name="search" value="{{.search}}" placeholder="{{t $ "search.pagePlaceholder"}}" autocomplete="off">
+        <button class="page-search-btn" type="submit"><i class="icon-search"></i>{{t $ "common.search"}}</button>
+    </form>
+    {{if .search}}
+    <div class="module-heading module-heading-search">
+        <div class="module-heading-search-result">{{tHTML $ "search.result" .search .page.Total}}</div>
+    </div>
+    {{if .list}}
+    <div class="module-main module-page">
+        <div class="module-items module-card-items">
+            {{range .list}}
+            <div class="module-card-item module-item">
+                <div class="module-card-item-class">{{if .CName}}{{.CName}}{{else}}{{t $ "common.uncategorized"}}{{end}}</div>
+                <a href="/filmDetail?link={{.Id}}" class="module-card-item-poster">
+                    <div class="module-item-cover">
+                        {{if .Remarks}}<div class="module-item-note">{{formatRemarks .Remarks}}</div>{{end}}
+                        <div class="module-item-pic"><img class="lazy card-img" src="{{.Picture}}" alt="{{.Name}}" loading="lazy" referrerpolicy="no-referrer"></div>
+                    </div>
+                </a>
+                <div class="module-card-item-info">
+                    <div class="module-card-item-title"><a href="/filmDetail?link={{.Id}}"><strong>{{.Name}}</strong></a></div>
+                    <div class="module-info-item"><div class="module-info-item-content">{{or (formatYear .Year) (t $ "common.unknown")}} <span class="slash">/</span> {{or (formatArea .Area) (t $ "common.unknown")}}</div></div>
+                    <div class="module-info-item"><div class="module-info-item-content">{{if .Actor}}{{.Actor}}{{else}}{{or (searchBlurb .Blurb) (t $ "detail.noIntro")}}{{end}}</div></div>
+                </div>
+                <div class="module-card-item-footer">
+                    <a href="/play?id={{.Id}}&source=&episode=0" class="play-btn icon-btn"><i class="icon-play"></i><span>{{t $ "common.play"}}</span></a>
+                    <a href="/filmDetail?link={{.Id}}" class="play-btn-o"><span>{{t $ "common.details"}}</span></a>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        {{if gt .page.PageCount 1}}
+        <div id="page">
+            {{if gt .page.Current 1}}
+            <a href="{{searchURL $.search 1}}" class="page-link page-previous">{{t $ "page.first"}}</a>
+            <a href="{{searchURL $.search (subtract .page.Current 1)}}" class="page-link page-previous">{{t $ "page.prev"}}</a>
+            {{end}}
+            {{range $n := pageRange .page.Current .page.PageCount 5}}
+            {{if eq $n $.page.Current}}<span class="page-link page-number page-current display">{{$n}}</span>{{else}}<a href="{{searchURL $.search $n}}" class="page-link page-number display">{{$n}}</a>{{end}}
+            {{end}}
+            {{if lt .page.Current .page.PageCount}}
+            <a href="{{searchURL $.search (add .page.Current 1)}}" class="page-link page-next">{{t $ "page.next"}}</a>
+            <a href="{{searchURL $.search .page.PageCount}}" class="page-link page-next">{{t $ "page.last"}}</a>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+    {{else}}
+    <div class="module-prompt">
+        <div class="nofound">{{t $ "search.notFound" .search}}</div>
+        <div class="module-prompt-info">{{t $ "search.tip"}}</div>
+    </div>
+    {{end}}
+    {{end}}
+</div>
+{{end}}

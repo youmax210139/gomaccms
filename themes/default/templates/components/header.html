@@ -1,0 +1,87 @@
+{{define "components/header"}}
+{{- $active := 0 -}}
+{{- if .title}}{{$active = .title.Id}}{{end -}}
+{{- if .detail}}{{$active = .detail.Pid}}{{end -}}
+<div class="header">
+    <div class="header-box">
+        <div class="logo">
+            <a href="/" title="{{if .site}}{{.site.SiteName}}{{end}}">
+                {{if and .site .site.Logo}}<img class="logo-img" src="{{.site.Logo}}" alt="{{.site.SiteName}}">{{end}}
+                <span class="logo-text">{{if .site}}{{.site.SiteName}}{{end}}</span>
+            </a>
+        </div>
+        <div class="search-box">
+            <div class="searchbar-main">
+                <form method="get" action="/search" id="search-form">
+                    <div class="searchbar">
+                        <input class="search-input" type="text" name="search" autocomplete="off" placeholder="{{t $ "search.placeholder"}}">
+                        <a class="search-rank" href="/rank" title="{{t $ "nav.rank"}}"><i class="icon-rank"></i><span>{{t $ "search.hotRank"}}</span></a>
+                        <button class="search-btn search-go" type="submit" aria-label="{{t $ "common.search"}}"><i class="icon-search"></i></button>
+                        <button class="cancel-btn" type="button">{{t $ "common.cancel"}}</button>
+                    </div>
+                </form>
+                {{if .hotSearch}}
+                <div class="search-recommend-box">
+                    <div class="search-recommend">
+                        <div class="search-recommend-title"><strong>{{t $ "search.hotTitle"}}</strong></div>
+                        <div class="search-tag">
+                            {{range $i, $w := .hotSearch}}<a href="/search?search={{$w}}"{{if lt $i 4}} class="hot"{{end}}><i class="icon-hot"></i>{{$w}}</a>{{end}}
+                        </div>
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+        <div class="header-op">
+            <div class="header-op-list">
+                {{if gt (len .langs) 1}}
+                <div class="drop drop-lang-wrap">
+                    <div class="header-op-list-btn header-op-lang" title="{{t $ "nav.language"}}"><i class="icon icon-globe"></i><span>{{.langName}}</span></div>
+                    <div class="drop-content drop-lang">
+                        <div class="drop-content-box">
+                            <ul class="drop-content-items">
+                                {{range .langs}}<li><a class="lang-option{{if eq .Code $.lang}} active{{end}}" href="javascript:;" data-lang="{{.Code}}">{{.Name}}</a></li>{{end}}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {{end}}
+                <div class="drop drop-history-wrap">
+                    <div class="header-op-list-btn header-op-history"><i class="icon icon-history-o"></i><span>{{t $ "nav.history"}}</span></div>
+                    <div class="drop-content drop-history">
+                        <div class="drop-content-box">
+                            <ul class="drop-content-items historical">
+                                <li class="drop-item drop-item-title"><i class="icon icon-history"></i><strong>{{t $ "history.dropTitle"}}</strong><a class="history-clear" href="javascript:;">{{t $ "common.clear"}}</a></li>
+                            </ul>
+                            <a class="history-more" href="/history">{{t $ "history.viewAll"}}</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-op-list-btn header-op-search"><i class="icon icon-search"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="sidebar">
+    <div class="navbar">
+        <ul class="navbar-items">
+            <li class="navbar-item nav-home">
+                <a href="/" class="links"><i class="icon-arrow-go"></i><i class="icon icon-home-o"></i><span>{{t $ "common.home"}}</span></a>
+            </li>
+            <li class="navbar-hr"></li>
+            {{range .nav}}
+            <li class="navbar-item{{if eq .Id $active}} active{{end}}">
+                <a href="/filmClassify?Pid={{.Id}}" title="{{.Name}}" class="links">{{if eq .Id $active}}<div class="current"></div>{{end}}<i class="icon-arrow-go"></i><i class="icon {{categoryIcon (or .SourceName .Name)}}"></i><span>{{.Name}}</span></a>
+            </li>
+            {{end}}
+            <li class="navbar-hr"></li>
+            <li class="navbar-item nav-today{{if and .navKey (eq .navKey "today")}} active{{end}}">
+                <a href="/today" class="links"><i class="icon-arrow-go"></i><i class="icon icon-bolt"></i><span>{{t $ "nav.today"}}</span>{{if .todayCount}}<em class="nav-badge">{{.todayCount}}</em>{{end}}</a>
+            </li>
+            <li class="navbar-item nav-rank{{if and .navKey (eq .navKey "rank")}} active{{end}}">
+                <a href="/rank" class="links"><i class="icon-arrow-go"></i><i class="icon icon-rank"></i><span>{{t $ "nav.rank"}}</span></a>
+            </li>
+        </ul>
+    </div>
+</div>
+{{end}}

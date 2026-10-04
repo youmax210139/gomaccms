@@ -1,0 +1,91 @@
+{{define "pageClass"}}page player{{end}}
+{{define "content"}}
+{{$d := .detail}}
+<link rel="stylesheet" href="{{asset .ThemeName "vendor/xgplayer/index.min.css"}}">
+<link rel="stylesheet" href="{{asset .ThemeName "css/pages/play.css"}}">
+<div class="module module-player">
+    <div class="module-main">
+        <div class="player-box">
+            <div class="player-box-main">
+                <div id="player-container" class="player-container"></div>
+            </div>
+        </div>
+        <div class="module-player-side">
+            <div class="module-player-info">
+                <div class="module-info-heading">
+                    <h1><a href="/filmDetail?link={{$d.Mid}}" title="{{$d.Name}}">{{stripAlias $d.Name}}</a> <span class="current-episode" id="current-episode-label">{{.current.Episode}}</span></h1>
+                    <div class="module-info-tag">
+                        <div class="module-info-tag-link"><a href="/filmClassifySearch?Pid={{$d.Pid}}&Category={{$d.Cid}}">{{if blank $d.CName}}{{t $ "common.uncategorized"}}{{else}}{{$d.CName}}{{end}}</a></div>
+                        <div class="module-info-tag-link"><span>{{or (formatYear $d.Year) (t $ "common.unknown")}}</span></div>
+                        <div class="module-info-tag-link"><span>{{or (formatArea $d.Area) (t $ "common.unknown")}}</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="module-player-handle-items">
+                <div class="module-player-handle-item">
+                    <div class="handle-btn sort-btn"><span class="handle-btn-icon"><i class="icon-sort"></i></span><span class="handle-btn-name">{{t $ "common.sort"}}</span></div>
+                </div>
+                <div class="module-player-handle-item">
+                    <div class="handle-btn" id="next-episode-btn"><span class="handle-btn-icon"><i class="icon-next"></i></span><span class="handle-btn-name">{{t $ "play.next"}}</span></div>
+                </div>
+                <div class="module-player-handle-item">
+                    <div class="handle-btn active" id="autoplay-toggle"><span class="handle-btn-icon"><i class="icon-play"></i></span><span class="handle-btn-name">{{t $ "play.autoplay"}}</span></div>
+                </div>
+                <div class="module-player-handle-item">
+                    <div class="handle-btn share-btn" data-share="{{stripAlias $d.Name}}"><span class="handle-btn-icon"><i class="icon-share"></i></span><span class="handle-btn-name">{{t $ "common.share"}}</span></div>
+                </div>
+            </div>
+            <div class="player-list">
+                <div class="module-heading player-heading">
+                    <h2 class="module-title">{{t $ "common.episodes"}}</h2>
+                    <div class="module-tab play-source-tabs" id="play-tab-group">
+                        {{range $item := $d.List}}
+                        <div class="module-tab-item tab-item{{if eq $item.Id $.currentPlayFrom}} active{{end}}" data-source="{{$item.Id}}"><span>{{$item.Name}}</span><small>{{len $item.LinkList}}</small></div>
+                        {{end}}
+                    </div>
+                </div>
+                <div id="play-list">
+                    {{range $item := $d.List}}
+                    <div class="module-list sort-list tab-list{{if eq $item.Id $.currentPlayFrom}} active{{end}}" data-source="{{$item.Id}}">
+                        <div class="module-play-list">
+                            <div class="module-play-list-content module-play-list-base">
+                                {{range $ei, $v := $item.LinkList}}
+                                <a class="module-play-list-link{{if and (eq $item.Id $.currentPlayFrom) (eq $ei $.currentEpisode)}} active{{end}}" href="/play?id={{$d.Mid}}&source={{$item.Id}}&episode={{$ei}}" data-source="{{$item.Id}}" data-episode="{{$ei}}"><span>{{$v.Episode}}</span><div class="playon"><i></i><i></i><i></i><i></i></div></a>
+                                {{end}}
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+                {{/* 广告位 play_bottom: 选集下方 */}}
+                {maccms:ad slot="play_bottom" num="1"}<div class="ad-slot ad-play-bottom">{if condition="$vo.ad_link"}<a href="{$vo.ad_link}" target="_blank" rel="nofollow sponsored noopener">{/if}<img src="{$vo.ad_pic}" alt="{$vo.ad_name}" loading="lazy">{if condition="$vo.ad_link"}</a>{/if}</div>{/maccms:ad}
+            </div>
+        </div>
+    </div>
+</div>
+
+{{/* 广告位 play_top: 播放器下方 (后台「广告管理」) */}}
+{maccms:ad slot="play_top" num="1"}<div class="ad-slot ad-play-top">{if condition="$vo.ad_link"}<a href="{$vo.ad_link}" target="_blank" rel="nofollow sponsored noopener">{/if}<img src="{$vo.ad_pic}" alt="{$vo.ad_name}" loading="lazy">{if condition="$vo.ad_link"}</a>{/if}</div>{/maccms:ad}
+
+<div class="module">
+    <div class="module-heading"><h2 class="module-title">{{t $ "common.related"}}</h2></div>
+    {{template "components/film-list" .relate}}
+</div>
+
+<script type="application/json" id="play-data">{{toJSON $d.List}}</script>
+<script>
+window.PLAY_INIT = {
+    mid: {{$d.Mid}},
+    name: {{stripAlias $d.Name}},
+    picture: {{$d.Picture}},
+    currentSource: {{.currentPlayFrom}},
+    currentEpisode: {{.currentEpisode}},
+    currentLink: {{.current.Link}}
+};
+</script>
+{{end}}
+{{define "scripts"}}
+<script src="{{asset .ThemeName "vendor/xgplayer/index.min.js"}}"></script>
+<script src="{{asset .ThemeName "vendor/xgplayer/xgplayer-hls.min.js"}}"></script>
+<script src="{{asset .ThemeName "js/play.js"}}"></script>
+{{end}}

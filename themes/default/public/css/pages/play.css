@@ -1,0 +1,48 @@
+/* 播放页 / 自定义播放: xgplayer 外观与自定义选集面板 */
+.player-container {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    padding-top: 56.25% !important;
+    position: relative;
+    background: #000;
+}
+.player-box-main .xgplayer-is-fullscreen { padding-top: 0 !important; }
+.xgplayer .xgplayer-progress-played, .xg-mini-progress xg-mini-progress-played { background: linear-gradient(-90deg, #ff711f 0%, #e50914 100%); }
+.xgplayer .xgplayer-drag { background: #e50914; }
+.xgplayer .xgplayer-progress-btn { width: 10px; height: 10px; border-radius: 10px; }
+.xgplayer .xgplayer-progress-btn:before { width: 8px; height: 8px; border-radius: 8px; }
+.xgplayer .flex-controls .xg-inner-controls { bottom: 0; }
+.xg-right-grid .xg-playlist-btn { display: flex; align-items: center; padding: 0 6px; color: #fff; font-size: 14px; line-height: 40px; cursor: pointer; }
+.playListContainer {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    width: 110px;
+    max-height: 200px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, .6);
+    border-radius: 4px;
+    margin-bottom: 6px;
+}
+.playListContainer .playlist-item {
+    font-size: 14px;
+    line-height: 30px;
+    padding: 0 8px;
+    color: #fff;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.playListContainer .playlist-item:hover { color: #ff711f; }
+.playListContainer .active { background: #e50914; font-weight: bold; }
+@media (max-width: 768px) {
+    .xgplayer xg-start-inner { border-radius: 50% !important; background: rgba(0, 0, 0, .38) !important; }
+}
+
+/* 广告位 (后台「广告管理」, 图片可为 gif 动图) */
+.ad-slot { margin: 12px 0; text-align: center; line-height: 0; }
+.ad-slot img { display: inline-block; max-width: 100%; height: auto; border-radius: 6px; }
+.player-list .ad-slot { margin: 12px 0 0; }

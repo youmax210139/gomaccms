@@ -1,0 +1,109 @@
+{{define "pageClass"}}page view{{end}}
+{{define "content"}}
+{{$d := .detail}}
+<div class="module module-info">
+    <div class="module-main">
+        <div class="module-info-poster">
+            <div class="module-item-cover">
+                <div class="module-item-pic"><img class="card-img" src="{{$d.Picture}}" alt="{{$d.Name}}" referrerpolicy="no-referrer"></div>
+            </div>
+        </div>
+        <div class="module-info-main">
+            <div class="module-info-heading">
+                <h1>{{stripAlias $d.Name}}</h1>
+                <div class="module-info-tag">
+                    <div class="module-info-tag-link"><a href="/filmClassifySearch?Pid={{$d.Pid}}&Year={{$d.Year}}">{{or (formatYear $d.Year) (t $ "common.unknown")}}</a></div>
+                    <div class="module-info-tag-link"><a href="/filmClassifySearch?Pid={{$d.Pid}}&Area={{formatArea $d.Area}}">{{or (formatArea $d.Area) (t $ "common.unknown")}}</a></div>
+                    <div class="module-info-tag-link"><a href="/filmClassifySearch?Pid={{$d.Pid}}&Category={{$d.Cid}}">{{if blank $d.CName}}{{t $ "common.uncategorized"}}{{else}}{{$d.CName}}{{end}}</a></div>
+                    {{if $d.ClassTag}}<div class="module-info-tag-link"><span>{{classTagMobile $d.ClassTag}}</span></div>{{end}}
+                </div>
+                <div class="module-mobile-play">
+                    {{if $d.List}}
+                    <a href="/play?id={{$d.Mid}}&source={{(index $d.List 0).Id}}&episode=0" class="main-btn"><i class="icon-play"></i>{{t $ "detail.playNow"}}</a>
+                    {{else}}
+                    <a class="noplaylist btn-large" href="javascript:;"><i class="icon-warm"></i>{{t $ "detail.noSource"}}</a>
+                    {{end}}
+                </div>
+            </div>
+            <div class="module-info-content">
+                <div class="module-info-items">
+                    <div class="module-info-item module-info-introduction">
+                        <div class="module-info-introduction-content show-desc" id="detail-desc">
+                            <p>{{with cleanFilmContent $d.Content}}{{.}}{{else}}{{t $ "detail.noIntro"}}{{end}}</p>
+                        </div>
+                    </div>
+                    <div class="is_mb desc-toggle" id="desc-toggle"><span>{{t $ "detail.expandAll"}}</span></div>
+                    <div class="module-info-item"><span class="module-info-item-title">{{t $ "detail.director"}}</span>
+                        <div class="module-info-item-content">{{if blank $d.Director}}{{t $ "common.unknown"}}{{else}}{{range $i, $n := splitList $d.Director 6}}{{if $i}}<span class="slash">/</span>{{end}}<a href="{{searchURL $n 1}}">{{$n}}</a>{{end}}{{end}}</div>
+                    </div>
+                    {{if not (blank $d.Writer)}}
+                    <div class="module-info-item"><span class="module-info-item-title">{{t $ "detail.writer"}}</span>
+                        <div class="module-info-item-content">{{truncateList $d.Writer}}</div>
+                    </div>
+                    {{end}}
+                    <div class="module-info-item"><span class="module-info-item-title">{{t $ "detail.actor"}}</span>
+                        <div class="module-info-item-content">{{if blank $d.Actor}}{{t $ "common.unknown"}}{{else}}{{range $i, $n := splitList $d.Actor 8}}{{if $i}}<span class="slash">/</span>{{end}}<a href="{{searchURL $n 1}}">{{$n}}</a>{{end}}{{end}}</div>
+                    </div>
+                    {{if $d.ReleaseDate}}
+                    <div class="module-info-item"><span class="module-info-item-title">{{t $ "detail.release"}}</span><div class="module-info-item-content">{{$d.ReleaseDate}}</div></div>
+                    {{end}}
+                    {{if $d.Language}}
+                    <div class="module-info-item"><span class="module-info-item-title">{{t $ "detail.language"}}</span><div class="module-info-item-content">{{$d.Language}}</div></div>
+                    {{end}}
+                    {{if $d.UpdateTime}}
+                    <div class="module-info-item"><span class="module-info-item-title">{{t $ "detail.updated"}}</span><div class="module-info-item-content">{{$d.UpdateTime}}</div></div>
+                    {{end}}
+                    <div class="module-info-item"><span class="module-info-item-title">{{t $ "detail.remarks"}}</span><div class="module-info-item-content">{{if $d.Remarks}}{{$d.Remarks}}{{else}}{{t $ "detail.finished"}}{{end}}</div></div>
+                    {{if $d.DbScore}}
+                    <div class="module-info-item"><span class="module-info-item-title">{{t $ "detail.score"}}</span><div class="module-info-item-content"><strong class="score">{{$d.DbScore}}</strong></div></div>
+                    {{end}}
+                </div>
+                <div class="module-info-footer">
+                    <div class="module-info-play">
+                        {{if $d.List}}
+                        <a href="/play?id={{$d.Mid}}&source={{(index $d.List 0).Id}}&episode=0" class="main-btn"><i class="icon-play"></i>{{t $ "detail.playNow"}}</a>
+                        {{else}}
+                        <a class="noplaylist btn-large" href="javascript:;"><i class="icon-warm"></i>{{t $ "detail.noSource"}}</a>
+                        {{end}}
+                        <button class="btn-large btn-collect share-btn" type="button" data-share="{{stripAlias $d.Name}}"><i class="icon-share"></i>{{t $ "common.share"}}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="module-poster-bg">
+        <div class="module-item-cover"><div class="module-item-pic"><img src="{{$d.Picture}}" alt="" referrerpolicy="no-referrer"></div></div>
+    </div>
+</div>
+
+{{if $d.List}}
+<div class="module" id="playlist">
+    <div class="module-heading player-heading">
+        <h2 class="module-title">{{t $ "common.episodes"}}</h2>
+        <div class="module-tab play-source-tabs">
+            {{range $i, $item := $d.List}}
+            <div class="module-tab-item tab-item{{if eq $i 0}} active{{end}}" data-source="{{$item.Id}}"><span>{{$item.Name}}</span><small>{{len $item.LinkList}}</small></div>
+            {{end}}
+        </div>
+        <div class="module-tab-item sort-btn" title="{{t $ "common.sort"}}"><i class="icon-sort"></i><span>{{t $ "common.sort"}}</span></div>
+    </div>
+    {{range $i, $item := $d.List}}
+    <div class="module-list sort-list tab-list{{if eq $i 0}} active{{end}}" data-source="{{$item.Id}}">
+        <div class="module-play-list">
+            <div class="module-play-list-content module-play-list-base">
+                {{range $ei, $v := $item.LinkList}}
+                <a class="module-play-list-link" href="/play?id={{$d.Mid}}&source={{$item.Id}}&episode={{$ei}}" title="{{t $ "detail.playTitle" $d.Name $v.Episode}}"><span>{{$v.Episode}}</span></a>
+                {{end}}
+            </div>
+        </div>
+    </div>
+    {{end}}
+</div>
+{{end}}
+
+<div class="module">
+    <div class="module-heading"><h2 class="module-title">{{t $ "common.related"}}</h2></div>
+    {{template "components/film-list" .relate}}
+</div>
+{{end}}
+{{define "scripts"}}<script src="{{asset .ThemeName "js/detail.js"}}"></script>{{end}}

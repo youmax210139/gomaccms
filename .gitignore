@@ -1,0 +1,50 @@
+# ---------- Go ----------
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+# vendor/
+
+# air 热重载临时文件
+tmp/
+build-errors.log
+
+# ---------- Node / 前端构建 ----------
+node_modules/
+dist/
+package-lock.json
+
+# admin (Inertia) Vite build artifacts
+public/build/
+public/hot
+
+# ---------- 运行时数据 ----------
+# 运行时文件 (上传图片等)
+*.log
+# SEO 发布中心生成的 sitemap
+storage/sitemap/
+storage/backup/
+
+# ---------- 编辑器 / AI 工具 / 系统文件 ----------
+.idea/
+.vscode/
+.claude/
+.superpowers/
+.DS_Store
+Thumbs.db
+*.swp
+.air.toml
+CLAUDE.md
+docs/superpowers
+
+# ---------- 本地环境 ----------
+.env
+.env.*
+!.env.example
+
+# 未公开的 provide 接口
+ProvideController.go
+ProvideLogic.go

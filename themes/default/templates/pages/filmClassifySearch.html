@@ -1,0 +1,51 @@
+{{define "pageClass"}}page list pianku{{end}}
+{{define "content"}}
+{{if .title}}
+<div class="module">
+    <div class="module-heading module-heading-tab">
+        <a class="module-heading-tab-link" href="/filmClassify?Pid={{.title.Id}}">{{t $ "classify.home" .title.Name}}</a><span class="line"></span>
+        <span class="module-heading-tab-link active">{{t $ "classify.library" .title.Name}}</span>
+    </div>
+    {{$search := .search}}
+    {{$params := .params}}
+    <div class="module-main module-class" id="class-panel">
+        {{range $k := index $search "sortList"}}
+        <div class="module-class-items scroll-box">
+            <div class="module-class-item scroll-content">
+                <div class="module-item-title">{{t $ (printf "filter.%s" $k)}}<i class="icon-arrow"></i></div>
+                <div class="module-item-box">
+                    {{range $tag := index (index $search "tags") $k}}
+                    {{- $v := index $tag "Value"}}
+                    <a href="{{classifyURL $params $k $v 1}}"{{if eq $v (index $params $k)}} class="active"{{end}}>{{if eq $k "Sort"}}{{t $ (printf "sort.%s" $v)}}{{else if eq $v ""}}{{t $ "common.all"}}{{else if eq $v "其它"}}{{t $ "common.other"}}{{else}}{{index $tag "Name"}}{{end}}</a>
+                    {{end}}
+                </div>
+                <span class="class-toggle" hidden><span>{{t $ "filter.expand"}}</span><i class="icon-arrow"></i></span>
+            </div>
+        </div>
+        {{end}}
+    </div>
+    <div class="class-panel-toggle"><button type="button" class="class-panel-btn" aria-controls="class-panel" aria-expanded="true" title="{{t $ "filter.hidePanel"}}"><span>{{t $ "filter.hidePanel"}}</span><i class="icon-arrow"></i></button></div>
+    {{if .list}}
+    {{template "components/film-list" .list}}
+    {{else}}
+    <div class="module-prompt"><div class="nofound">{{t $ "filter.empty"}}</div></div>
+    {{end}}
+    {{if gt .page.PageCount 1}}
+    <div id="page">
+        {{if gt .page.Current 1}}
+        <a href="{{classifyURL $params "" "" 1}}" class="page-link page-previous">{{t $ "page.first"}}</a>
+        <a href="{{classifyURL $params "" "" (subtract .page.Current 1)}}" class="page-link page-previous">{{t $ "page.prev"}}</a>
+        {{end}}
+        {{range $n := pageRange .page.Current .page.PageCount 5}}
+        {{if eq $n $.page.Current}}<span class="page-link page-number page-current display">{{$n}}</span>{{else}}<a href="{{classifyURL $params "" "" $n}}" class="page-link page-number display">{{$n}}</a>{{end}}
+        {{end}}
+        {{if lt .page.Current .page.PageCount}}
+        <a href="{{classifyURL $params "" "" (add .page.Current 1)}}" class="page-link page-next">{{t $ "page.next"}}</a>
+        <a href="{{classifyURL $params "" "" .page.PageCount}}" class="page-link page-next">{{t $ "page.last"}}</a>
+        {{end}}
+    </div>
+    {{end}}
+</div>
+{{end}}
+{{end}}
+{{define "scripts"}}<script src="{{asset .ThemeName "js/classify.js"}}"></script>{{end}}

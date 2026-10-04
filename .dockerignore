@@ -1,0 +1,16 @@
+**/.git
+**/.DS_Store
+**/node_modules
+.claude
+.superpowers
+.vscode
+.idea
+docs
+film
+.env
+.env.*
+docker-compose.yml
+tmp
+storage
+public/build
+public/hot

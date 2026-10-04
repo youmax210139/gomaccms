@@ -1,0 +1,14 @@
+{{define "pageClass"}}page list{{end}}
+{{define "content"}}
+<div class="module">
+    <div class="module-heading">
+        <h2 class="module-title">{{t $ "nav.history"}}</h2>
+        <a href="javascript:;" class="module-heading-more history-clear">{{t $ "history.clearAll"}}</a>
+    </div>
+    <div class="module-main">
+        <div class="module-items module-card-items" id="history-page-list"></div>
+        <div class="module-prompt" id="history-page-empty" hidden><div class="nofound">{{t $ "history.empty"}}</div></div>
+    </div>
+</div>
+{{end}}
+{{define "scripts"}}<script src="{{asset .ThemeName "js/history.js"}}"></script>{{end}}

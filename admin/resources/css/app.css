@@ -1,0 +1,15 @@
+@import "element-plus/dist/index.css";
+body {
+    margin: 0;
+}
+
+/* 页面顶部 / 弹窗中的表单错误提示 (props.errors.form) */
+.form-error {
+    color: #f56c6c;
+    margin: 0 0 12px;
+}
+
+/* 表头不换行 */
+.el-table th.el-table__cell > .cell {
+    white-space: nowrap;
+}

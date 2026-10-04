@@ -1,0 +1,20 @@
+{{define "components/vodbox"}}
+<a href="/filmDetail?link={{.Id}}" title="{{.Name}}" class="module-poster-item module-item">
+    <div class="module-item-cover">
+        {{if .Remarks}}<div class="module-item-note">{{formatRemarks .Remarks}}</div>{{end}}
+        <div class="module-item-pic"><img class="lazy card-img" src="{{.Picture}}" alt="{{.Name}}" loading="lazy" referrerpolicy="no-referrer"></div>
+        <i class="icon-play"></i>
+    </div>
+    <div class="module-poster-item-info">
+        <div class="module-poster-item-title">{{.Name}}</div>
+    </div>
+</a>
+{{end}}
+
+{{define "components/film-list"}}
+<div class="module-main">
+    <div class="module-items module-poster-items-base">
+        {{range .}}{{template "components/vodbox" .}}{{end}}
+    </div>
+</div>
+{{end}}

@@ -1,0 +1,37 @@
+{{define "pageClass"}}page list{{end}}
+{{define "content"}}
+<div class="module">
+    <div class="module-heading">
+        <h2 class="module-title">{{t $ "nav.today"}}</h2>
+        <span class="module-heading-search-result">{{tHTML $ "today.total" .page.Total}}</span>
+    </div>
+    {{if .nav}}
+    <div class="today-filter">
+        <a href="/today"{{if eq .pid 0}} class="active"{{end}}>{{t $ "common.all"}}</a>
+        {{range .nav}}<a href="/today?Pid={{.Id}}"{{if eq .Id $.pid}} class="active"{{end}}>{{.Name}}</a>{{end}}
+    </div>
+    {{end}}
+    {{if .list}}
+    {{template "components/film-list" .list}}
+    {{if gt .page.PageCount 1}}
+    <div id="page">
+        {{if gt .page.Current 1}}
+        <a href="/today?Pid={{.pid}}&current=1" class="page-link page-previous">{{t $ "page.first"}}</a>
+        <a href="/today?Pid={{.pid}}&current={{subtract .page.Current 1}}" class="page-link page-previous">{{t $ "page.prev"}}</a>
+        {{end}}
+        {{range $n := pageRange .page.Current .page.PageCount 5}}
+        {{if eq $n $.page.Current}}<span class="page-link page-number page-current display">{{$n}}</span>{{else}}<a href="/today?Pid={{$.pid}}&current={{$n}}" class="page-link page-number display">{{$n}}</a>{{end}}
+        {{end}}
+        {{if lt .page.Current .page.PageCount}}
+        <a href="/today?Pid={{.pid}}&current={{add .page.Current 1}}" class="page-link page-next">{{t $ "page.next"}}</a>
+        <a href="/today?Pid={{.pid}}&current={{.page.PageCount}}" class="page-link page-next">{{t $ "page.last"}}</a>
+        {{end}}
+    </div>
+    {{end}}
+    {{else}}
+    <div class="module-prompt">
+        <div class="nofound">{{t $ "today.empty"}}</div>
+    </div>
+    {{end}}
+</div>
+{{end}}

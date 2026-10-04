@@ -1,0 +1,33 @@
+{{define "pageClass"}}page list{{end}}
+{{define "content"}}
+<div class="module">
+    <div class="module-heading module-heading-tab">
+        {{range $i, $k := .tabs}}{{if $i}}<span class="line"></span>{{end}}{{if eq $k $.by}}<span class="module-heading-tab-link active">{{t $ (printf "rank.tab.%s" $k)}}</span>{{else}}<a class="module-heading-tab-link" href="/rank?by={{$k}}">{{t $ (printf "rank.tab.%s" $k)}}</a>{{end}}{{end}}
+    </div>
+    <div class="rank-boards">
+        {{range .boards}}
+        <div class="rank-board">
+            <h3 class="rank-board-title"><a href="/filmClassify?Pid={{.Category.Id}}">{{t $ "rank.board" .Category.Name}}</a></h3>
+            {{if .List}}
+            <ol>
+                {{range $i, $m := .List}}
+                <li>
+                    <a href="/filmDetail?link={{$m.Mid}}" title="{{$m.Name}}">
+                        <span class="rank-board-no">{{add $i 1}}</span>
+                        <span class="rank-board-info">
+                            <span class="rank-board-name">{{$m.Name}}</span>
+                            <span class="rank-board-note">{{if eq $.by "score"}}{{if $m.Score}}{{t $ "rank.score" $m.Score}}{{else}}{{t $ "rank.noScore"}}{{end}}{{else}}{{if $m.Remarks}}{{$m.Remarks}}{{else}}{{$m.CName}}{{end}}{{end}}</span>
+                        </span>
+                        <i class="icon-arrow-right"></i>
+                    </a>
+                </li>
+                {{end}}
+            </ol>
+            {{else}}
+            <div class="rank-board-empty">{{t $ "rank.empty"}}</div>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}

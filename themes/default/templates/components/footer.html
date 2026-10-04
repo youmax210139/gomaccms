@@ -1,0 +1,23 @@
+{{define "components/footer"}}
+<div class="footer">
+    <div class="content">
+        <div class="footer-content">
+            <div class="foot-logo"><span class="logo-text">{{if .site}}{{.site.SiteName}}{{end}}</span></div>
+            <div class="foot-copyright">
+                <p>{{t $ "footer.disclaimer"}}</p>
+                {{if .site}}{{with .site.ServiceEmail}}<p>{{t $ "footer.email" .}}</p>{{end}}{{end}}
+                {{if .site}}{{with .site.LegalInfo}}<p class="legal-info">{{.}}</p>{{end}}{{end}}
+                <p class="foot-links"><a target="_blank" href="/rss.xml">{{t $ "footer.rss"}}</a><a target="_blank" href="/sitemap.xml">{{t $ "footer.sitemap"}}</a></p>
+                {{if gt (len .langs) 1}}<div class="foot-lang" title="{{t $ "nav.language"}}"><i class="icon icon-globe"></i>{{range .langs}}<a class="lang-option{{if eq .Code $.lang}} active{{end}}" href="javascript:;" data-lang="{{.Code}}">{{.Name}}</a>{{end}}</div>{{end}}
+            </div>
+        </div>
+    </div>
+</div>
+<div class="mxprofoot">
+    <a class="item" href="/"><i class="icon-home-o size20"></i><div class="grid-item-name">{{t $ "common.home"}}</div></a>
+    {{range $i, $n := .nav}}{{if lt $i 3}}
+    <a class="item" href="/filmClassify?Pid={{$n.Id}}"><i class="size20 {{categoryIcon (or $n.SourceName $n.Name)}}"></i><div class="grid-item-name">{{$n.Name}}</div></a>
+    {{end}}{{end}}
+    <a class="item" href="/history"><i class="icon-history-o size20"></i><div class="grid-item-name">{{t $ "nav.historyShort"}}</div></a>
+</div>
+{{end}}

@@ -1,0 +1,37 @@
+{{define "pageClass"}}page list{{end}}
+{{define "content"}}
+{{if .title}}
+<div class="module">
+    <div class="module-heading module-heading-tab">
+        <span class="module-heading-tab-link active">{{t $ "classify.home" .title.Name}}</span><span class="line"></span>
+        <a class="module-heading-tab-link" href="/filmClassifySearch?Pid={{.title.Id}}">{{t $ "classify.library" .title.Name}}</a>
+    </div>
+    {{if .title.Children}}
+    <div class="module-class-links">
+        {{range .title.Children}}{{if .Show}}<a href="/filmClassifySearch?Pid={{$.title.Id}}&Category={{.Id}}">{{.Name}}</a>{{end}}{{end}}
+    </div>
+    {{end}}
+</div>
+<div class="module">
+    <div class="module-heading">
+        <h2 class="module-title">{{t $ "classify.newest"}}</h2>
+        <a href="/filmClassifySearch?Pid={{.title.Id}}&Sort=release_stamp" class="module-heading-more">{{t $ "common.more"}}<i class="icon-arrow-right"></i></a>
+    </div>
+    {{template "components/film-list" (index .content "news")}}
+</div>
+<div class="module">
+    <div class="module-heading">
+        <h2 class="module-title">{{t $ "classify.mostViewed"}}</h2>
+        <a href="/filmClassifySearch?Pid={{.title.Id}}&Sort=hits" class="module-heading-more">{{t $ "common.more"}}<i class="icon-arrow-right"></i></a>
+    </div>
+    {{template "components/film-list" (index .content "hits")}}
+</div>
+<div class="module">
+    <div class="module-heading">
+        <h2 class="module-title">{{t $ "classify.topRated"}}</h2>
+        <a href="/filmClassifySearch?Pid={{.title.Id}}&Sort=score" class="module-heading-more">{{t $ "common.more"}}<i class="icon-arrow-right"></i></a>
+    </div>
+    {{template "components/film-list" (index .content "score")}}
+</div>
+{{end}}
+{{end}}
