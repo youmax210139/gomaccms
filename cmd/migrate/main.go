@@ -9,7 +9,7 @@
 //	                                         --redis 同时清空所用的 Redis 库 (站点设置、缓存、检索标签);
 //	                                         需输入库名确认, --force 跳过 (GIN_MODE=release 时必须加 --force)
 //
-// 连线设定与服务相同 (MYSQL_DSN、REDIS_ADDR、REDIS_DB ...).
+// 连线设定与服务相同 (环境变量 MYSQL_DSN、REDIS_ADDR、REDIS_DB ... 优先, 其次为安装向导写入的 storage/config.env).
 package main
 
 import (
