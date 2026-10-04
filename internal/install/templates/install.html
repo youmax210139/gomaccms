@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安装 GoMacCMS</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--text:#1f2329;--muted:#646a73;--line:#dee0e3;--ok:#1a7f37;--bad:#cf222e;--primary:#3370ff}
+@media (prefers-color-scheme:dark){:root{--bg:#141517;--card:#1f2023;--text:#e8e9eb;--muted:#9a9ca1;--line:#33353a;--ok:#3fb950;--bad:#f85149;--primary:#4c8dff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:640px;margin:32px auto;padding:0 16px}
+h1{font-size:22px;margin:0 0 16px}
+h2{font-size:16px;margin:0 0 12px}
+section{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:16px}
+table{width:100%;border-collapse:collapse}
+td{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top;word-break:break-all}
+td:first-child{white-space:nowrap;width:6em;word-break:normal}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.muted{color:var(--muted)}
+label{display:block;margin:10px 0 4px}
+input{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--text);font:inherit}
+.row{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+.error{background:rgba(207,34,46,.1);color:var(--bad);padding:10px 12px;border-radius:6px;margin-bottom:16px}
+.actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:16px}
+button{padding:9px 18px;border:1px solid var(--primary);border-radius:6px;background:var(--primary);color:#fff;font:inherit;cursor:pointer}
+button.secondary{background:transparent;color:var(--primary)}
+button:disabled{opacity:.5;cursor:not-allowed}
+a{color:var(--primary)}
+</style>
+</head>
+<body>
+<main>
+<h1>安装 GoMacCMS</h1>
+{{if .Error}}<div class="error">{{.Error}}</div>{{end}}
+
+<section>
+<h2>1. 环境检查</h2>
+<table>
+{{range .Checks}}<tr><td>{{.Name}}</td><td class="{{if .OK}}ok{{else if .Blocking}}bad{{else}}muted{{end}}">{{if .OK}}✓{{else}}✗{{end}} {{.Detail}}</td></tr>
+{{end}}</table>
+{{if .Blocked}}<p class="bad">请先解决上面的问题, 然后 <a href="/install">重新检查</a></p>{{end}}
+</section>
+
+<form method="post" action="/install" id="install-form">
+<section>
+<h2>2. MySQL</h2>
+{{if .MysqlFromEnv}}<p class="muted">由环境变量提供 (MYSQL_DSN)</p>{{else}}
+<div class="row">
+<div><label>主机</label><input name="mysql_host" value="{{.Form.MysqlHost}}" required></div>
+<div><label>端口</label><input name="mysql_port" value="{{.Form.MysqlPort}}" required inputmode="numeric"></div>
+</div>
+<label>用户</label><input name="mysql_user" value="{{.Form.MysqlUser}}" required>
+<label>密码</label><input type="password" name="mysql_password" autocomplete="off">
+<label>数据库名 (不存在时自动创建)</label><input name="mysql_db" value="{{.Form.MysqlDB}}" required>
+{{end}}
+</section>
+
+<section>
+<h2>3. Redis</h2>
+{{if .RedisFromEnv}}<p class="muted">由环境变量提供 (REDIS_ADDR)</p>{{else}}
+<div class="row">
+<div><label>地址</label><input name="redis_addr" value="{{.Form.RedisAddr}}" required></div>
+<div><label>库编号</label><input name="redis_db" value="{{.Form.RedisDB}}" inputmode="numeric"></div>
+</div>
+<label>密码 (没有则留空)</label><input type="password" name="redis_password" autocomplete="off">
+{{end}}
+</section>
+
+<section>
+<h2>4. 管理员</h2>
+<label>账号</label><input name="account" value="{{.Form.Account}}" required autocomplete="username">
+<label>Email</label><input type="email" name="email" value="{{.Form.Email}}" required>
+<label>密码 (至少 6 位)</label><input type="password" name="password" required autocomplete="new-password">
+<label>确认密码</label><input type="password" name="password2" required autocomplete="new-password">
+</section>
+
+<section>
+<h2>5. 安装码</h2>
+<p class="muted">见服务启动日志 (Docker: <code>docker compose logs app</code>)</p>
+<input name="code" value="{{.Form.Code}}" required inputmode="numeric" autocomplete="off">
+<div class="actions">
+{{if not (and .MysqlFromEnv .RedisFromEnv)}}<button type="button" class="secondary" id="test-btn">测试连接</button>{{end}}
+<button type="submit"{{if .Blocked}} disabled{{end}}>安装</button>
+<span id="test-result"></span>
+</div>
+</section>
+</form>
+</main>
+<script>
+(function () {
+  var btn = document.getElementById('test-btn');
+  if (!btn) return;
+  var out = document.getElementById('test-result');
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    out.textContent = '测试中…';
+    out.className = 'muted';
+    fetch('/install/test', {method: 'POST', body: new URLSearchParams(new FormData(document.getElementById('install-form')))})
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.code !== 0) { out.textContent = res.msg; out.className = 'bad'; return; }
+        var lines = [], bad = false;
+        ['mysql', 'redis'].forEach(function (k) {
+          var c = res.data[k];
+          if (!c) return;
+          bad = bad || !c.ok;
+          lines.push(c.name + ': ' + (c.ok ? '✓ ' : '✗ ') + c.detail);
+        });
+        out.textContent = lines.join('  ');
+        out.className = bad ? 'bad' : 'ok';
+      })
+      .catch(function (e) { out.textContent = String(e); out.className = 'bad'; })
+      .finally(function () { btn.disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>
